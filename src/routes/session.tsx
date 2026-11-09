@@ -482,7 +482,7 @@ function LiveSession() {
           <ol className="mt-3 divide-y divide-border">
             {qas.map((q, i) => (
               <li key={q.id} className="py-2 text-sm">
-                {(i === 0 || (qas[i - 1].stage ?? 1) !== (q.stage ?? 1)) && stage > 1 && (
+                {(i === 0 || (qas[i - 1]?.stage ?? 1) !== (q.stage ?? 1)) && stage > 1 && (
                   <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Stage {q.stage ?? 1}</p>
                 )}
                 <button className="text-left hover:text-primary" onClick={() => { lastQaId.current = q.id; setAnswer({ noQuestion: false, question: q.question, subject: q.subject, answer: q.answer, points: q.points }); }}>
