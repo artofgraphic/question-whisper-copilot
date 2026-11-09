@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { loadSessions, type Session } from "@/lib/store";
+import { ExportButtons } from "@/components/ExportButtons";
 
 export const Route = createFileRoute("/history/$id")({
   head: () => ({
@@ -30,12 +31,14 @@ function SessionDetail() {
       ) : (
         <>
           <h1 className="mt-4 text-2xl font-semibold">{new Date(s.startedAt).toLocaleString()}</h1>
+          <div className="mt-4"><ExportButtons session={s} /></div>
           <h2 className="mt-8 text-sm font-semibold">Questions & answers</h2>
           <div className="mt-3 space-y-3">
             {s.qas.length === 0 && <p className="text-sm text-muted-foreground">No questions were detected.</p>}
-            {s.qas.map((q) => (
+            {s.qas.map((q, i) => (
               <article key={q.id} className="rounded-xl border border-border bg-card p-5 shadow-card">
-                <p className="text-sm font-medium text-primary">{q.question}</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Question {i + 1}{q.stage ? ` · Stage ${q.stage}` : ""}</p>
+                <p className="mt-1 text-sm font-medium text-primary">{q.question}</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{q.answer}</p>
                 {q.points.length > 0 && <ul className="mt-3 space-y-1 text-xs text-muted-foreground">{q.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>}
               </article>

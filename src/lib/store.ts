@@ -38,6 +38,7 @@ export type QA = {
   subject: string;
   answer: string;
   points: string[];
+  stage?: number;
 };
 
 export type TranscriptLine = { id: string; at: number; text: string };
