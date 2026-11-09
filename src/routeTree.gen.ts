@@ -10,18 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as SessionRouteImport } from './routes/session'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiAnswerRouteImport } from './routes/api/answer'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as HistoryIdRouteImport } from './routes/history.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionRoute = SessionRouteImport.update({
   id: '/session',
   path: '/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAnswerRoute = ApiAnswerRouteImport.update({
@@ -34,37 +47,75 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryIdRoute = HistoryIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => HistoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/history': typeof HistoryRouteWithChildren
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/history': typeof HistoryRouteWithChildren
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/history': typeof HistoryRouteWithChildren
   '/session': typeof SessionRoute
+  '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/session' | '/api/answer' | '/api/transcribe'
+  fullPaths:
+    | '/'
+    | '/history'
+    | '/session'
+    | '/settings'
+    | '/api/answer'
+    | '/api/transcribe'
+    | '/history/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/session' | '/api/answer' | '/api/transcribe'
-  id: '__root__' | '/' | '/session' | '/api/answer' | '/api/transcribe'
+  to:
+    | '/'
+    | '/history'
+    | '/session'
+    | '/settings'
+    | '/api/answer'
+    | '/api/transcribe'
+    | '/history/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/history'
+    | '/session'
+    | '/settings'
+    | '/api/answer'
+    | '/api/transcribe'
+    | '/history/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HistoryRoute: typeof HistoryRouteWithChildren
   SessionRoute: typeof SessionRoute
+  SettingsRoute: typeof SettingsRoute
   ApiAnswerRoute: typeof ApiAnswerRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
 }
@@ -78,11 +129,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/session': {
       id: '/session'
       path: '/session'
       fullPath: '/session'
       preLoaderRoute: typeof SessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/answer': {
@@ -99,12 +164,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history/$id': {
+      id: '/history/$id'
+      path: '/$id'
+      fullPath: '/history/$id'
+      preLoaderRoute: typeof HistoryIdRouteImport
+      parentRoute: typeof HistoryRoute
+    }
   }
 }
 
+interface HistoryRouteChildren {
+  HistoryIdRoute: typeof HistoryIdRoute
+}
+
+const HistoryRouteChildren: HistoryRouteChildren = {
+  HistoryIdRoute: HistoryIdRoute,
+}
+
+const HistoryRouteWithChildren =
+  HistoryRoute._addFileChildren(HistoryRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HistoryRoute: HistoryRouteWithChildren,
   SessionRoute: SessionRoute,
+  SettingsRoute: SettingsRoute,
   ApiAnswerRoute: ApiAnswerRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
 }
