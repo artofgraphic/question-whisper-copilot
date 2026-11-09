@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Copy, RefreshCw, Minimize2, Maximize2, Pencil, Check, Mic, Pause, Play, Square,
-  PictureInPicture2, Sparkles, Loader2, Monitor, AlertTriangle, X,
+  PictureInPicture2, Sparkles, Loader2, Monitor, AlertTriangle, X, Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { looksLikeQuestion, parseAnswer, streamAnswer, type ParsedAnswer } from 
 import { lengthLabel, loadSettings, saveSession, saveSettings, uid, type QA, type Session, type Settings, type TranscriptLine } from "@/lib/store";
 import { useAudioStatus } from "@/hooks/use-audio-status";
 import { FloatingOverlay, pipSupported } from "@/components/FloatingOverlay";
+import { ExportButtons } from "@/components/ExportButtons";
 
 export const Route = createFileRoute("/session")({
   head: () => ({
@@ -48,6 +49,11 @@ function LiveSession() {
   const [overlay, setOverlay] = useState(false);
   const [compact, setCompact] = useState(true);
   const [editLine, setEditLine] = useState<string | null>(null);
+  const [stage, setStage] = useState(1);
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+  const [pendingNew, setPendingNew] = useState(false);
+  const overlayEnd = useRef<HTMLDivElement>(null);
 
   const listener = useRef<LiveListener | null>(null);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -99,6 +105,7 @@ function LiveSession() {
     const ac = new AbortController();
     answerAbort.current = ac;
     setGenerating(true);
+    setPendingNew(mode === "auto" || mode === "manual");
     setEditing(false);
     const s = settingsRef.current;
     const prevAnswer = answerRefCur.current;
@@ -129,14 +136,14 @@ function LiveSession() {
       if (isRevision && lastQaId.current) {
         setQas((q) => q.map((x) => (x.id === lastQaId.current ? { ...x, answer: p.answer, points: p.points } : x)));
       } else if (p.answer) {
-        const qa: QA = { id: uid(), at: Date.now(), question: p.question || text, subject: p.subject, answer: p.answer, points: p.points };
+        const qa: QA = { id: uid(), at: Date.now(), question: p.question || text, subject: p.subject, answer: p.answer, points: p.points, stage: stageRef.current };
         lastQaId.current = qa.id;
         setQas((q) => [...q, qa]);
       }
     } catch (e) {
       if (!ac.signal.aborted) toast.error((e as Error).message);
     } finally {
-      if (answerAbort.current === ac) setGenerating(false);
+      if (answerAbort.current === ac) { setGenerating(false); setPendingNew(false); }
     }
   }, []);
 
@@ -249,6 +256,21 @@ function LiveSession() {
     toast.success("Answer copied");
   };
 
+  useEffect(() => {
+    overlayEnd.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [qas.length, pendingNew, answer.answer]);
+
+  const newStage = () => {
+    setStage((n) => n + 1);
+    setPendingFrom(linesRef.current.length);
+    setAnswer(empty);
+    lastQaId.current = null;
+    toast.success(`Stage ${stage + 1} started — overlay cleared. Earlier answers are kept in the summary.`);
+  };
+
+  const stageQas = qas.map((q, i) => ({ q, n: i + 1 })).filter((x) => (x.q.stage ?? 1) === stage);
+  const liveSession: Session = { id: sessionRef.current?.id ?? "live", startedAt: sessionRef.current?.startedAt ?? Date.now(), transcript: lines, qas };
+
   const sourceValue = settings.source === "system" ? "system::" : `mic::${settings.deviceId}`;
   const lastQuestion = answer.question || qas.at(-1)?.question;
   const pendingText = lines.slice(pendingFrom).map((l) => l.text).join(" ");
@@ -270,19 +292,40 @@ function LiveSession() {
           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setCompact((c) => !c)}>
             {compact ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copy()}><Copy className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" title="New stage — clear the overlay" onClick={newStage}><RefreshCw className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
-      {lastQuestion && <p className="text-xs text-primary">{lastQuestion}</p>}
-      <div className="flex-1 overflow-auto">
-        <p className={`${compact ? "text-[15px]" : "text-base"} whitespace-pre-wrap leading-relaxed`}>
-          {answer.answer || <span className="text-muted-foreground">The next suggested answer will appear here.</span>}
-        </p>
-        {!compact && answer.points.length > 0 && (
-          <ul className="mt-3 space-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
-            {answer.points.map((p, i) => <li key={i}>• {p}</li>)}
-          </ul>
+      <div className="flex-1 space-y-2 overflow-auto pr-1">
+        {stage > 1 && <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Stage {stage}</p>}
+        {stageQas.length === 0 && !pendingNew && <p className="text-muted-foreground">The next suggested answer will appear here.</p>}
+        {stageQas.map(({ q, n }) => {
+          const live = generating && !pendingNew && q.id === lastQaId.current;
+          const text = live ? answer.answer : q.answer;
+          const latest = q.id === lastQaId.current;
+          return (
+            <div key={q.id} className={`rounded-lg border p-2.5 ${latest ? "border-primary/40 bg-accent/30" : "border-border opacity-80"}`}>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 rounded bg-primary px-1.5 font-mono text-[10px] text-primary-foreground">Q{n}</span>
+                <p className="flex-1 text-xs text-primary">{q.question}</p>
+                <button onClick={() => copy(text)} aria-label="Copy this answer" className="text-muted-foreground hover:text-primary"><Copy className="h-3 w-3" /></button>
+              </div>
+              <p className={`${compact ? "text-[14px]" : "text-[15px]"} mt-1.5 whitespace-pre-wrap leading-relaxed`}>{text}</p>
+              {!compact && q.points.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">{q.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>
+              )}
+            </div>
+          );
+        })}
+        {pendingNew && (
+          <div className="rounded-lg border border-primary/40 bg-accent/30 p-2.5">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 shrink-0 rounded bg-primary px-1.5 font-mono text-[10px] text-primary-foreground">Q{qas.length + 1}</span>
+              <p className="flex-1 text-xs text-primary">{answer.question || "Listening to the question…"}</p>
+            </div>
+            <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-relaxed">{answer.answer || <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}</p>
+          </div>
         )}
+        <div ref={overlayEnd} />
       </div>
     </div>
   );
@@ -314,6 +357,9 @@ function LiveSession() {
           {state === "listening" && <Button variant="secondary" onClick={pause}><Pause className="mr-1 h-4 w-4" />Pause</Button>}
           {state === "paused" && <Button onClick={resume}><Play className="mr-1 h-4 w-4" />Resume</Button>}
           {state !== "idle" && <Button variant="destructive" onClick={stop}><Square className="mr-1 h-4 w-4" />Stop</Button>}
+          <Button variant="outline" onClick={newStage} disabled={stageQas.length === 0} title="Clear the overlay and start the next stage">
+            <Layers className="mr-1 h-4 w-4" />New stage{stage > 1 ? ` (now ${stage})` : ""}
+          </Button>
           <Button
             variant="outline"
             onClick={() => (pipSupported() ? setOverlay((o) => !o) : toast.error("Floating overlay needs Chrome or Edge 116+ on desktop."))}
@@ -427,18 +473,24 @@ function LiveSession() {
         </section>
       </div>
 
-      {qas.length > 1 && (
+      {qas.length > 0 && (
         <section className="rounded-xl border border-border bg-card p-4 shadow-card">
-          <h2 className="text-sm font-semibold">Earlier in this session</h2>
-          <ul className="mt-2 divide-y divide-border">
-            {qas.slice(0, -1).reverse().map((q) => (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Interview summary · {qas.length} question{qas.length > 1 ? "s" : ""}</h2>
+            <ExportButtons session={liveSession} />
+          </div>
+          <ol className="mt-3 divide-y divide-border">
+            {qas.map((q, i) => (
               <li key={q.id} className="py-2 text-sm">
+                {(i === 0 || (qas[i - 1]?.stage ?? 1) !== (q.stage ?? 1)) && stage > 1 && (
+                  <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Stage {q.stage ?? 1}</p>
+                )}
                 <button className="text-left hover:text-primary" onClick={() => { lastQaId.current = q.id; setAnswer({ noQuestion: false, question: q.question, subject: q.subject, answer: q.answer, points: q.points }); }}>
-                  {q.question}
+                  <span className="mr-2 font-mono text-xs text-muted-foreground">Q{i + 1}</span>{q.question}
                 </button>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       )}
 
