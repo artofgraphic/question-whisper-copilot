@@ -66,7 +66,7 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --shadow-card: var(--shadow-card);
+  --shadow-card: var(--card-shadow);
   --shadow-glow: var(--glow-primary);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -114,7 +114,7 @@
   --sidebar-accent-foreground: oklch(0.94 0.008 160);
   --sidebar-border: oklch(1 0 0 / 7%);
   --sidebar-ring: oklch(0.68 0.11 162);
-  --shadow-card: 0 1px 0 oklch(1 0 0 / 4%) inset, 0 12px 32px -16px oklch(0 0 0 / 60%);
+  --card-shadow: 0 1px 0 oklch(1 0 0 / 4%) inset, 0 12px 32px -16px oklch(0 0 0 / 60%);
   --glow-primary: 0 0 0 1px oklch(0.68 0.11 162 / 35%), 0 20px 50px -20px oklch(0.68 0.11 162 / 35%);
 }
 
