@@ -4,7 +4,7 @@ export type ParsedAnswer = {
   subject: string;
   answer: string;
   points: string[];
-  error?: string;
+  error?: string | undefined;
 };
 
 /** Parse the (possibly partial) structured stream from /api/answer. */
