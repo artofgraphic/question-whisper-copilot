@@ -4,7 +4,7 @@ export type ListenerState = "idle" | "listening" | "paused";
 
 type Opts = {
   source: "mic" | "system";
-  deviceId?: string;
+  deviceId?: string | undefined;
   silenceMs: number;
   onSegment: (file: File) => void;
   onLevel: (rms: number, speaking: boolean) => void;

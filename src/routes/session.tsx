@@ -89,7 +89,10 @@ function LiveSession() {
     if (mode === "regenerate" || mode === "shorter" || mode === "expand") text = overrideText ?? "";
     if (!text) {
       if (mode === "manual") text = all.slice(-3).map((l) => l.text).join(" ");
-      if (!text) return toast.message("Nothing to answer yet — wait for the interviewer to speak.");
+      if (!text) {
+        toast.message("Nothing to answer yet — wait for the interviewer to speak.");
+        return;
+      }
     }
     if (mode === "auto" || mode === "manual") setPendingFrom(all.length);
     answerAbort.current?.abort();
