@@ -11,8 +11,8 @@ export async function transcribe(
   file: File,
   options: {
     buffered?: boolean;
-    language?: string;
-    signal?: AbortSignal;
+    language?: string | undefined;
+    signal?: AbortSignal | undefined;
   } = {},
 ) {
   if (!file.size || file.size > config.maxFileBytes) throw new Error("Invalid audio file size");
