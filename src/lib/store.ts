@@ -67,7 +67,7 @@ export function saveSettings(s: Settings) {
 }
 export function applyTheme(theme: Settings["theme"]) {
   if (typeof document === "undefined") return;
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset["theme"] = theme;
 }
 
 export function loadSessions(): Session[] {

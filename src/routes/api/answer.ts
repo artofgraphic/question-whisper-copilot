@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/answer")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.LOVABLE_API_KEY;
+        const apiKey = process.env["LOVABLE_API_KEY"];
         if (!apiKey) return Response.json({ error: "AI is not configured" }, { status: 500 });
         let body: Body;
         try {
@@ -75,7 +75,7 @@ export const Route = createFileRoute("/api/answer")({
           headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
           fetch: runIdFetch.fetch,
         });
-        let upstreamError: { status?: number; message: string } | null = null;
+        let upstreamError: { status?: number | undefined; message: string } | null = null;
         const result = streamText({
           model: provider.responses("openai/gpt-6-astra"),
           instructions: INSTRUCTIONS,
@@ -101,7 +101,7 @@ export const Route = createFileRoute("/api/answer")({
           async start(controller) {
             try {
               for await (const chunk of result.textStream) controller.enqueue(encoder.encode(chunk));
-              const err = upstreamError as { status?: number; message: string } | null;
+              const err = upstreamError as { status?: number | undefined; message: string } | null;
               if (err) {
                 const msg =
                   err.status === 402

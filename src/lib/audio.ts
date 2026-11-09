@@ -48,7 +48,7 @@ export class LiveListener {
     } else {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          deviceId: this.opts.deviceId ? { exact: this.opts.deviceId } : undefined,
+          ...(this.opts.deviceId ? { deviceId: { exact: this.opts.deviceId } } : {}),
           echoCancellation: true,
           noiseSuppression: true,
         },
@@ -134,7 +134,7 @@ function downsample(chunks: Float32Array[], from: number, to: number): Float32Ar
     const start = Math.floor(i * ratio);
     const end = Math.min(len, Math.floor((i + 1) * ratio));
     let s = 0;
-    for (let j = start; j < end; j++) s += all[j];
+    for (let j = start; j < end; j++) s += all[j]!;
     out[i] = s / Math.max(1, end - start);
   }
   return out;
@@ -146,7 +146,7 @@ export async function transcribeSegment(file: File, language: string, signal?: A
   const form = new FormData();
   form.append("file", file);
   if (language) form.append("language", language);
-  const res = await fetch("/api/transcribe", { method: "POST", body: form, signal });
+  const res = await fetch("/api/transcribe", { method: "POST", body: form, signal: signal ?? null });
   if (!res.ok || !res.body) {
     let msg = `Transcription failed (${res.status})`;
     try {

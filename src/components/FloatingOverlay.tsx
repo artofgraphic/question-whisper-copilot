@@ -42,7 +42,7 @@ export function FloatingOverlay({
         document.querySelectorAll('link[rel="stylesheet"], style').forEach((n) => {
           pw.document.head.appendChild(n.cloneNode(true));
         });
-        pw.document.documentElement.dataset.theme = document.documentElement.dataset.theme ?? "";
+        pw.document.documentElement.dataset["theme"] = document.documentElement.dataset["theme"] ?? "";
         pw.document.title = "A'wn Khafi";
         pw.document.body.className = "bg-background text-foreground";
         pw.addEventListener("pagehide", () => {
