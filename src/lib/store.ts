@@ -20,7 +20,7 @@ export const defaultSettings: Settings = {
   language: "",
   autoDetect: true,
   length: "medium",
-  tone: "confident and natural",
+  tone: "natural, relaxed and human",
   profile: "",
   saveHistory: true,
   theme: "charcoal",
