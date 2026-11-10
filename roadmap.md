@@ -1,0 +1,2 @@
+- [x] Repair floating-window opening and verify the fallback.
+- [x] Repair question detection and verify spoken input through the answer window.

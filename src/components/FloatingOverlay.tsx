@@ -6,8 +6,13 @@ type PipApi = {
   window: Window | null;
 };
 
-export function pipSupported() {
-  return typeof window !== "undefined" && "documentPictureInPicture" in window;
+/** Must run directly in the click handler, before React effects lose user activation. */
+export function requestOverlayWindow(width: number, height: number): Promise<Window> {
+  const api = (window as unknown as { documentPictureInPicture?: PipApi }).documentPictureInPicture;
+  if (api) return api.requestWindow({ width, height });
+  const popup = window.open("", "awn-floating-overlay", `popup=yes,width=${width},height=${height}`);
+  if (!popup) return Promise.reject(new Error("The floating window was blocked. Allow pop-up windows for this app."));
+  return Promise.resolve(popup);
 }
 
 /**
@@ -19,46 +24,42 @@ export function FloatingOverlay({
   onClose,
   width,
   height,
+  targetWindow,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   width: number;
   height: number;
+  targetWindow: Window | null;
   children: ReactNode;
 }) {
   const [win, setWin] = useState<Window | null>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const api = (window as unknown as { documentPictureInPicture: PipApi }).documentPictureInPicture;
-    let w: Window | null = null;
-    let cancelled = false;
-    api
-      .requestWindow({ width, height })
-      .then((pw) => {
-        if (cancelled) return pw.close();
-        w = pw;
+    if (!open || !targetWindow) return;
+    const pw = targetWindow;
         document.querySelectorAll('link[rel="stylesheet"], style').forEach((n) => {
           pw.document.head.appendChild(n.cloneNode(true));
         });
         pw.document.documentElement.dataset["theme"] = document.documentElement.dataset["theme"] ?? "";
         pw.document.title = "A'wn Khafi";
         pw.document.body.className = "bg-background text-foreground";
-        pw.addEventListener("pagehide", () => {
+        const closed = () => {
           setWin(null);
           onClose();
-        });
+        };
+        pw.addEventListener("pagehide", closed);
+        const poll = setInterval(() => { if (pw.closed) closed(); }, 500);
         setWin(pw);
-      })
-      .catch(() => onClose());
     return () => {
-      cancelled = true;
-      w?.close();
+      clearInterval(poll);
+      pw.removeEventListener("pagehide", closed);
+      pw.close();
       setWin(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, targetWindow]);
 
   useEffect(() => {
     if (win) {

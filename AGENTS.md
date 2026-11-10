@@ -31,4 +31,4 @@ use the editor.
 
 - AI calls live in server routes `src/routes/api/answer.ts` (Responses, streamed plain text with QUESTION/SUBJECT/ANSWER/POINTS markers parsed by `src/lib/answer.ts`) and `src/routes/api/transcribe.ts` (STT proxy) — keeps the API key server-side and lets the client stream.
 - Audio capture + pause-based segmentation runs client-side in `src/lib/audio.ts`; settings/history persist in localStorage (`src/lib/store.ts`) — no backend auth needed; swap to Cloud later if cross-device history is required.
-- The floating overlay uses the Document Picture-in-Picture API (`src/components/FloatingOverlay.tsx`); a native Electron/Tauri wrapper can reuse the same web app.
+- Open floating windows directly from the user's click using Document Picture-in-Picture with a same-origin popup fallback; this preserves user activation and supports Electron without that browser API.

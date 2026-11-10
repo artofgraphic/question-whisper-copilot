@@ -12,7 +12,7 @@ import { LiveListener, transcribeSegment, type ListenerState } from "@/lib/audio
 import { looksLikeQuestion, parseAnswer, streamAnswer, type ParsedAnswer } from "@/lib/answer";
 import { lengthLabel, loadSettings, saveSession, saveSettings, uid, type QA, type Session, type Settings, type TranscriptLine } from "@/lib/store";
 import { useAudioStatus } from "@/hooks/use-audio-status";
-import { FloatingOverlay, pipSupported } from "@/components/FloatingOverlay";
+import { FloatingOverlay, requestOverlayWindow } from "@/components/FloatingOverlay";
 import { ExportButtons } from "@/components/ExportButtons";
 
 export const Route = createFileRoute("/session")({
@@ -47,6 +47,8 @@ function LiveSession() {
   const [draft, setDraft] = useState("");
   const [qas, setQas] = useState<QA[]>([]);
   const [overlay, setOverlay] = useState(false);
+  const [overlayWindow, setOverlayWindow] = useState<Window | null>(null);
+  const [openingOverlay, setOpeningOverlay] = useState(false);
   const [compact, setCompact] = useState(true);
   const [editLine, setEditLine] = useState<string | null>(null);
   const [stage, setStage] = useState(1);
@@ -100,12 +102,13 @@ function LiveSession() {
         return;
       }
     }
-    if (mode === "auto" || mode === "manual") setPendingFrom(all.length);
+    const consumed = all.length;
     answerAbort.current?.abort();
     const ac = new AbortController();
     answerAbort.current = ac;
     setGenerating(true);
     setPendingNew(mode === "auto" || mode === "manual");
+    if (mode === "auto" || mode === "manual") setAnswer(empty);
     setEditing(false);
     const s = settingsRef.current;
     const prevAnswer = answerRefCur.current;
@@ -126,7 +129,11 @@ function LiveSession() {
         ac.signal,
       );
       const p = parseAnswer(raw);
-      if (p.error) toast.error(p.error);
+      if (p.error) throw new Error(p.error);
+      if (mode === "auto" || mode === "manual") {
+        pendingRef.current = consumed;
+        setPendingFrom(consumed);
+      }
       if (p.noQuestion) {
         if (mode === "manual") toast.message("No question detected in the recent speech.");
         return;
@@ -256,6 +263,18 @@ function LiveSession() {
     toast.success("Answer copied");
   };
 
+  const toggleOverlay = async () => {
+    if (overlay) { setOverlay(false); return; }
+    setOpeningOverlay(true);
+    try {
+      const pw = await requestOverlayWindow(compact ? 380 : 480, compact ? 240 : 460);
+      setOverlayWindow(pw);
+      setOverlay(true);
+    } catch (e) {
+      toast.error((e as Error).message || "Could not open the floating window.");
+    } finally { setOpeningOverlay(false); }
+  };
+
   useEffect(() => {
     overlayEnd.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [qas.length, pendingNew, answer.answer]);
@@ -362,7 +381,8 @@ function LiveSession() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => (pipSupported() ? setOverlay((o) => !o) : toast.error("Floating overlay needs Chrome or Edge 116+ on desktop."))}
+            onClick={toggleOverlay}
+            disabled={openingOverlay}
           >
             <PictureInPicture2 className="mr-1 h-4 w-4" />{overlay ? "Close overlay" : "Floating overlay"}
           </Button>
@@ -494,7 +514,7 @@ function LiveSession() {
         </section>
       )}
 
-      <FloatingOverlay open={overlay} onClose={() => setOverlay(false)} width={compact ? 380 : 480} height={compact ? 240 : 460}>
+      <FloatingOverlay open={overlay} targetWindow={overlayWindow} onClose={() => setOverlay(false)} width={compact ? 380 : 480} height={compact ? 240 : 460}>
         {overlayBody}
       </FloatingOverlay>
     </div>
