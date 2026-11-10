@@ -17,7 +17,7 @@ async function askJson<T>(apiKey: string, instructions: string, input: string, s
     model: provider(apiKey).responses("openai/gpt-6-astra"),
     instructions,
     messages: [{ role: "user", content: input }],
-    abortSignal: signal,
+    ...(signal ? { abortSignal: signal } : {}),
     providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] } },
   });
   const text = await r.text;
@@ -44,7 +44,7 @@ async function tavily(query: string, key: string): Promise<Evidence[]> {
   }
 }
 
-export async function verifyAnswer(o: { question: string; answer: string; profile?: string; apiKey: string; tavilyKey: string; signal?: AbortSignal }): Promise<VerificationReport> {
+export async function verifyAnswer(o: { question: string; answer: string; profile?: string | undefined; apiKey: string; tavilyKey: string; signal?: AbortSignal }): Promise<VerificationReport> {
   const today = new Date().toISOString().slice(0, 10);
   const ex = await askJson<{ claims: Extracted[] }>(
     o.apiKey,
