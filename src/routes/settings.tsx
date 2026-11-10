@@ -51,12 +51,13 @@ function SettingsPage() {
       <Card title="Audio input">
         <div className="grid gap-2">
           <Label>Source</Label>
-          <Select value={s.source === "system" ? "system::" : `mic::${s.deviceId}`} onValueChange={(v) => { const [source, d] = v.split("::"); set({ source: source as Settings["source"], deviceId: d ?? "" }); }}>
+          <Select value={s.source !== "mic" ? `${s.source}::` : `mic::${s.deviceId}`} onValueChange={(v) => { const [source, d] = v.split("::"); set({ source: source as Settings["source"], deviceId: d ?? "" }); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="mic::">Default microphone</SelectItem>
               {devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d, i) => <SelectItem key={d.deviceId} value={`mic::${d.deviceId}`}>{d.label || `Microphone ${i + 1}`}</SelectItem>)}
-              <SelectItem value="system::">Tab / system audio (share screen)</SelectItem>
+              <SelectItem value="both::">Interviewer tab + my mic (recommended)</SelectItem>
+              <SelectItem value="system::">Interviewer tab only (share screen)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">Tab/system audio uses screen sharing with “Share audio”. Chrome/Edge capture tab audio everywhere and full system audio on Windows; macOS browsers can only share tab audio.</p>

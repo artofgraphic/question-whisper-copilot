@@ -2,7 +2,7 @@ import type { VerificationReport } from "./verify/types";
 // Browser-local persistence for settings and session history (no audio is ever stored).
 export type Settings = {
   deviceId: string;
-  source: "mic" | "system";
+  source: "mic" | "system" | "both";
   language: string;
   autoDetect: boolean;
   length: "short" | "medium" | "long";
@@ -16,7 +16,7 @@ export type Settings = {
 
 export const defaultSettings: Settings = {
   deviceId: "",
-  source: "mic",
+  source: "both",
   language: "",
   autoDetect: true,
   length: "medium",

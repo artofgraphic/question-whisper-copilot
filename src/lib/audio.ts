@@ -3,7 +3,7 @@ import { encodeWav } from "./wav";
 export type ListenerState = "idle" | "listening" | "paused";
 
 type Opts = {
-  source: "mic" | "system";
+  source: "mic" | "system" | "both";
   deviceId?: string | undefined;
   silenceMs: number;
   onSegment: (file: File) => void;
@@ -28,25 +28,29 @@ export class LiveListener {
   private silenceSamples = 0;
   private noise = 0.004;
   private paused = false;
+  private extra: MediaStream[] = [];
 
   constructor(private opts: Opts) {}
 
   async start() {
-    if (this.opts.source === "system") {
+    let tab: MediaStream | undefined;
+    let mic: MediaStream | undefined;
+    if (this.opts.source !== "mic") {
       const display = await navigator.mediaDevices.getDisplayMedia({
         video: true,
-        audio: { echoCancellation: false, noiseSuppression: false } as MediaTrackConstraints,
+        audio: { echoCancellation: false, noiseSuppression: false, suppressLocalAudioPlayback: false } as MediaTrackConstraints,
       });
       const audio = display.getAudioTracks();
       display.getVideoTracks().forEach((t) => t.stop());
       if (!audio.length) {
         throw new Error(
-          "No audio was shared. Choose a tab or screen and turn on “Share audio” in the browser dialog.",
+          "No audio was shared. Pick the meeting tab and turn on “Also share tab audio” in the browser dialog.",
         );
       }
-      this.stream = new MediaStream(audio);
-    } else {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      tab = new MediaStream(audio);
+    }
+    if (this.opts.source !== "system") {
+      mic = await navigator.mediaDevices.getUserMedia({
         audio: {
           ...(this.opts.deviceId ? { deviceId: { exact: this.opts.deviceId } } : {}),
           echoCancellation: true,
@@ -54,12 +58,19 @@ export class LiveListener {
         },
       });
     }
+    this.extra = [tab, mic].filter(Boolean) as MediaStream[];
+    this.stream = (tab ?? mic)!;
     this.stream.getAudioTracks()[0]?.addEventListener("ended", () => this.opts.onEnded());
 
     this.ctx = new AudioContext();
     await this.ctx.resume();
-    this.src = this.ctx.createMediaStreamSource(this.stream);
     this.node = this.ctx.createScriptProcessor(4096, 1, 1);
+    // Mix every captured stream (tab audio + microphone) into one input.
+    for (const st of this.extra) {
+      const n = this.ctx.createMediaStreamSource(st);
+      n.connect(this.node);
+      this.src ??= n;
+    }
     const rate = this.ctx.sampleRate;
     this.node.onaudioprocess = (e) => {
       if (this.paused) return;
@@ -83,7 +94,6 @@ export class LiveListener {
       }
       if (this.speechSamples / rate > MAX_SEGMENT_SEC) this.flush();
     };
-    this.src.connect(this.node);
     this.node.connect(this.ctx.destination);
   }
 
@@ -103,17 +113,16 @@ export class LiveListener {
   pause() {
     this.flush();
     this.paused = true;
-    this.stream?.getAudioTracks().forEach((t) => (t.enabled = false));
+    this.extra.forEach((st) => st.getAudioTracks().forEach((t) => (t.enabled = false)));
   }
   resume() {
     this.paused = false;
-    this.stream?.getAudioTracks().forEach((t) => (t.enabled = true));
+    this.extra.forEach((st) => st.getAudioTracks().forEach((t) => (t.enabled = true)));
   }
   async stop() {
     if (!this.paused) this.flush();
-    this.stream?.getTracks().forEach((t) => t.stop());
+    this.extra.forEach((st) => st.getTracks().forEach((t) => t.stop()));
     this.node?.disconnect();
-    this.src?.disconnect();
     if (this.node) this.node.onaudioprocess = null;
     await this.ctx?.close().catch(() => {});
   }
