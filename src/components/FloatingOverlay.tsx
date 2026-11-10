@@ -9,7 +9,8 @@ type PipApi = {
 /** Must run directly in the click handler, before React effects lose user activation. */
 export function requestOverlayWindow(width: number, height: number): Promise<Window> {
   const api = (window as unknown as { documentPictureInPicture?: PipApi }).documentPictureInPicture;
-  if (api) return api.requestWindow({ width, height });
+  // Embedded previews expose the API but prohibit using it inside their frame.
+  if (api && window.self === window.top) return api.requestWindow({ width, height });
   const popup = window.open("", "awn-floating-overlay", `popup=yes,width=${width},height=${height}`);
   if (!popup) return Promise.reject(new Error("The floating window was blocked. Allow pop-up windows for this app."));
   return Promise.resolve(popup);
