@@ -310,7 +310,7 @@ function LiveSession() {
   const stageQas = qas.map((q, i) => ({ q, n: i + 1 })).filter((x) => (x.q.stage ?? 1) === stage);
   const liveSession: Session = { id: sessionRef.current?.id ?? "live", startedAt: sessionRef.current?.startedAt ?? Date.now(), transcript: lines, qas };
 
-  const sourceValue = settings.source === "system" ? "system::" : `mic::${settings.deviceId}`;
+  const sourceValue = settings.source !== "mic" ? `${settings.source}::` : `mic::${settings.deviceId}`;
   const currentQa = qas.find((x) => x.id === lastQaId.current);
   const lastQuestion = currentQa?.question || answer.question || qas.at(-1)?.question;
   const experience = currentQa?.verification?.claims.filter((c) => c.status === "personal") ?? [];
@@ -391,7 +391,8 @@ function LiveSession() {
             {devices.filter((d) => d.deviceId && d.deviceId !== "default").map((d, i) => (
               <SelectItem key={d.deviceId} value={`mic::${d.deviceId}`}>{d.label || `Microphone ${i + 1}`}</SelectItem>
             ))}
-            <SelectItem value="system::">Tab / system audio (share screen)</SelectItem>
+            <SelectItem value="both::">Interviewer tab + my mic (recommended)</SelectItem>
+            <SelectItem value="system::">Interviewer tab only (share screen)</SelectItem>
           </SelectContent>
         </Select>
         <div className="ml-auto flex flex-wrap gap-2">
@@ -412,12 +413,15 @@ function LiveSession() {
         </div>
       </div>
 
-      {settings.source === "system" && state === "idle" && (
+      {settings.source !== "mic" && state === "idle" && (
         <p className="flex items-center gap-2 text-xs text-muted-foreground"><Monitor className="h-3.5 w-3.5" />
           You'll be asked to share a tab or screen — pick the meeting tab and turn on “Share audio”. Works best in Chrome/Edge.
         </p>
       )}
-      {permission === "denied" && settings.source === "mic" && (
+      {settings.source === "mic" && state === "idle" && (
+        <p className="flex items-center gap-2 text-xs text-chart-4"><AlertTriangle className="h-3.5 w-3.5" />Microphone only hears you — the interviewer's voice from your speakers is filtered out. Choose “Interviewer tab + my mic” to hear them.</p>
+      )}
+      {permission === "denied" && settings.source !== "system" && (
         <p className="flex items-center gap-2 text-xs text-destructive"><AlertTriangle className="h-3.5 w-3.5" />Microphone access is blocked in your browser settings.</p>
       )}
 
