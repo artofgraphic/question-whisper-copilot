@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, Mic, MicOff, Radio, Settings, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { loadSessions, type Session } from "@/lib/store";
+import { loadSessions, loadSettings, saveSettings, type Session } from "@/lib/store";
 import { useAudioStatus } from "@/hooks/use-audio-status";
+import { HowItWorks } from "@/components/HowItWorks";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,14 +20,25 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function Home() {
+export function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [showHow, setShowHow] = useState(false);
   const { permission, devices, request } = useAudioStatus();
-  useEffect(() => setSessions(loadSessions()), []);
+  useEffect(() => {
+    setSessions(loadSessions());
+    setShowHow(!loadSettings().seenHowItWorks);
+  }, []);
+
+  const dismissHow = () => {
+    saveSettings({ ...loadSettings(), seenHowItWorks: true });
+    setShowHow(false);
+  };
 
   const micOk = permission === "granted";
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
+      {showHow && <HowItWorks onDismiss={dismissHow} />}
+      {showHow && <div className="h-6" />}
       <section className="rounded-2xl border border-border bg-card p-8 shadow-card">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-primary">Interview copilot</p>
         <h1 className="mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
