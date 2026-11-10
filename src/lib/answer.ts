@@ -35,12 +35,12 @@ export function parseAnswer(raw: string): ParsedAnswer {
 }
 
 const QWORDS =
-  /^(what|why|how|when|where|who|which|can|could|would|will|do|does|did|is|are|should|have|has|tell|describe|explain|walk|give|talk|share|define|compare|imagine|suppose)\b/i;
+  /\b(what|why|how|when|where|who|which|tell|describe|explain|walk|give|talk|share|define|compare|imagine|suppose)\b|\b(can|could|would|will|do|does|did|is|are|should|have|has)\s+(you|we|your|the|a|an|it|there)\b/i;
 
 /** Cheap local heuristic to decide whether pending speech is worth sending to the AI. */
 export function looksLikeQuestion(text: string): boolean {
   const t = text.trim();
-  if (t.split(/\s+/).length < 3) return false;
+  if (t.split(/\s+/).length < 2) return false;
   if (/\?\s*$/.test(t)) return true;
   const sentences = t.split(/(?<=[.!?])\s+/);
   return sentences.some((s) => QWORDS.test(s.trim()) || /\?/.test(s));
