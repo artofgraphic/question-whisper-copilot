@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function Home() {
+export function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showHow, setShowHow] = useState(false);
   const { permission, devices, request } = useAudioStatus();
