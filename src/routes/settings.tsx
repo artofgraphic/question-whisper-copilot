@@ -99,6 +99,10 @@ function SettingsPage() {
           <Label>Automatically detect questions</Label>
           <Switch checked={s.autoDetect} onCheckedChange={(v) => set({ autoDetect: v })} />
         </div>
+        <div className="flex items-center justify-between">
+          <Label>Fact-check each answer against live web sources</Label>
+          <Switch checked={s.autoVerify} onCheckedChange={(v) => set({ autoVerify: v })} />
+        </div>
         <div className="grid gap-2">
           <Label>Your background (optional)</Label>
           <Textarea rows={4} value={s.profile} placeholder="Role, skills, real examples. The AI will only use facts written here for personal questions." onChange={(e) => set({ profile: e.target.value })} />

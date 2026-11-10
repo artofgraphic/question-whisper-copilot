@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { loadSessions, type Session } from "@/lib/store";
 import { ExportButtons } from "@/components/ExportButtons";
+import { VerificationCard } from "@/components/VerificationCard";
+import { requestVerification } from "@/lib/verify/client";
+import { saveSession } from "@/lib/store";
 
 export const Route = createFileRoute("/history/$id")({
   head: () => ({
@@ -41,6 +44,7 @@ function SessionDetail() {
                 <p className="mt-1 text-sm font-medium text-primary">{q.question}</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{q.answer}</p>
                 {q.points.length > 0 && <ul className="mt-3 space-y-1 text-xs text-muted-foreground">{q.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>}
+                <HistoryVerify session={s} qa={q} onChange={setS} />
               </article>
             ))}
           </div>
@@ -55,4 +59,18 @@ function SessionDetail() {
       )}
     </div>
   );
+}
+
+function HistoryVerify({ session, qa, onChange }: { session: Session; qa: Session["qas"][number]; onChange: (s: Session) => void }) {
+  const [loading, setLoading] = useState(false);
+  const recheck = async () => {
+    setLoading(true);
+    let v;
+    try { v = await requestVerification({ question: qa.question, answer: qa.answer }); }
+    catch (e) { v = { checkedAt: Date.now(), overall: "unverified" as const, counts: { supported: 0, stale: 0, contradicted: 0, unverified: 0, personal: 0 }, claims: [], error: (e as Error).message }; }
+    const next = { ...session, qas: session.qas.map((x) => (x.id === qa.id ? { ...x, verification: v } : x)) };
+    saveSession(next); onChange(next); setLoading(false);
+  };
+  if (!qa.verification && !loading) return <button onClick={recheck} className="mt-3 text-xs text-primary hover:underline">Verify this answer against live sources</button>;
+  return <VerificationCard report={qa.verification} loading={loading} onRecheck={recheck} />;
 }

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Copy, RefreshCw, Minimize2, Maximize2, Pencil, Check, Mic, Pause, Play, Square,
-  PictureInPicture2, Sparkles, Loader2, Monitor, AlertTriangle, X, Layers,
+  PictureInPicture2, Sparkles, Loader2, Monitor, AlertTriangle, X, Layers, ExternalLink, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,9 @@ import { lengthLabel, loadSettings, saveSession, saveSettings, uid, type QA, typ
 import { useAudioStatus } from "@/hooks/use-audio-status";
 import { FloatingOverlay, requestOverlayWindow } from "@/components/FloatingOverlay";
 import { ExportButtons } from "@/components/ExportButtons";
+import { VerificationCard } from "@/components/VerificationCard";
+import { requestVerification } from "@/lib/verify/client";
+import type { VerificationReport } from "@/lib/verify/types";
 
 export const Route = createFileRoute("/session")({
   head: () => ({
@@ -70,6 +73,20 @@ function LiveSession() {
   const detectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const transcriptEnd = useRef<HTMLDivElement>(null);
   const lastQaId = useRef<string | null>(null);
+  const [verifying, setVerifying] = useState<Set<string>>(() => new Set());
+  const [editQ, setEditQ] = useState<string | null>(null);
+
+  const verifyQa = useCallback(async (id: string, question: string, text: string) => {
+    setVerifying((v) => new Set(v).add(id));
+    let rep: VerificationReport;
+    try {
+      rep = await requestVerification({ question, answer: text, profile: settingsRef.current.profile });
+    } catch (e) {
+      rep = { checkedAt: Date.now(), overall: "unverified", counts: { supported: 0, stale: 0, contradicted: 0, unverified: 0, personal: 0 }, claims: [], error: (e as Error).message };
+    }
+    setQas((q) => q.map((x) => (x.id === id ? { ...x, verification: rep } : x)));
+    setVerifying((v) => { const n = new Set(v); n.delete(id); return n; });
+  }, []);
 
   useEffect(() => {
     transcriptEnd.current?.scrollIntoView({ block: "end" });
@@ -141,18 +158,21 @@ function LiveSession() {
       setAnswer(p);
       const isRevision = mode === "regenerate" || mode === "shorter" || mode === "expand";
       if (isRevision && lastQaId.current) {
-        setQas((q) => q.map((x) => (x.id === lastQaId.current ? { ...x, answer: p.answer, points: p.points } : x)));
+        const id = lastQaId.current;
+        setQas((q) => q.map((x) => (x.id === id ? { ...x, answer: p.answer, points: p.points, verification: undefined } : x)));
+        if (settingsRef.current.autoVerify) void verifyQa(id, p.question || text, p.answer);
       } else if (p.answer) {
         const qa: QA = { id: uid(), at: Date.now(), question: p.question || text, subject: p.subject, answer: p.answer, points: p.points, stage: stageRef.current };
         lastQaId.current = qa.id;
         setQas((q) => [...q, qa]);
+        if (settingsRef.current.autoVerify) void verifyQa(qa.id, qa.question, qa.answer);
       }
     } catch (e) {
       if (!ac.signal.aborted) toast.error((e as Error).message);
     } finally {
       if (answerAbort.current === ac) { setGenerating(false); setPendingNew(false); }
     }
-  }, []);
+  }, [verifyQa]);
 
   const answerRefCur = useRef(answer);
   answerRefCur.current = answer;
@@ -291,7 +311,9 @@ function LiveSession() {
   const liveSession: Session = { id: sessionRef.current?.id ?? "live", startedAt: sessionRef.current?.startedAt ?? Date.now(), transcript: lines, qas };
 
   const sourceValue = settings.source === "system" ? "system::" : `mic::${settings.deviceId}`;
-  const lastQuestion = answer.question || qas.at(-1)?.question;
+  const currentQa = qas.find((x) => x.id === lastQaId.current);
+  const lastQuestion = currentQa?.question || answer.question || qas.at(-1)?.question;
+  const experience = currentQa?.verification?.claims.filter((c) => c.status === "personal") ?? [];
   const pendingText = lines.slice(pendingFrom).map((l) => l.text).join(" ");
 
   const statusDot = state === "listening" ? (speaking ? "bg-primary" : "bg-live") : state === "paused" ? "bg-chart-4" : "bg-muted-foreground";
@@ -332,6 +354,7 @@ function LiveSession() {
               {!compact && q.points.length > 0 && (
                 <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">{q.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>
               )}
+              <VerificationCard compact report={q.verification} loading={verifying.has(q.id)} />
             </div>
           );
         })}
@@ -406,7 +429,16 @@ function LiveSession() {
               <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Detected question</h2>
               {answer.subject && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] text-accent-foreground">{answer.subject}</span>}
             </div>
-            <p className="mt-2 text-base font-medium">{lastQuestion || <span className="text-muted-foreground">Waiting for a question…</span>}</p>
+            {editQ !== null ? (
+              <input autoFocus value={editQ} onChange={(e) => setEditQ(e.target.value)}
+                onBlur={() => { const v = editQ.trim(); if (v && currentQa) setQas((q) => q.map((x) => (x.id === currentQa.id ? { ...x, question: v } : x))); if (v) setAnswer((a) => ({ ...a, question: v })); setEditQ(null); }}
+                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                className="mt-2 w-full rounded bg-input px-2 py-1 text-base outline-none ring-1 ring-ring" aria-label="Edit detected question" />
+            ) : (
+              <p className="mt-2 flex items-start gap-2 text-base font-medium">{lastQuestion || <span className="text-muted-foreground">Waiting for a question…</span>}
+                {lastQuestion && <button onClick={() => setEditQ(lastQuestion)} aria-label="Edit question" className="mt-1 text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>}
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-primary/30 bg-card p-6 shadow-glow">
@@ -438,9 +470,19 @@ function LiveSession() {
               <Button size="sm" variant="secondary" disabled={!answer.answer || generating} onClick={() => runAnswer("shorter", lastQuestion)}><Minimize2 className="mr-1 h-3.5 w-3.5" />Shorter</Button>
               <Button size="sm" variant="secondary" disabled={!answer.answer || generating} onClick={() => runAnswer("expand", lastQuestion)}><Maximize2 className="mr-1 h-3.5 w-3.5" />Expand</Button>
               <Button size="sm" variant="secondary" disabled={!answer.answer || generating} onClick={() => { setDraft(answer.answer); setEditing(true); }}><Pencil className="mr-1 h-3.5 w-3.5" />Edit</Button>
+              <Button size="sm" variant="secondary" disabled={!currentQa?.verification} onClick={() => document.getElementById("verification")?.scrollIntoView({ behavior: "smooth" })}><ExternalLink className="mr-1 h-3.5 w-3.5" />View Sources</Button>
+              <Button size="sm" variant="secondary" disabled={!currentQa || generating || verifying.has(currentQa.id)} onClick={() => currentQa && verifyQa(currentQa.id, currentQa.question, currentQa.answer)}><ShieldCheck className="mr-1 h-3.5 w-3.5" />Recheck</Button>
               {generating && <Button size="sm" variant="ghost" onClick={() => { answerAbort.current?.abort(); setGenerating(false); }}><X className="mr-1 h-3.5 w-3.5" />Stop</Button>}
             </div>
+            {currentQa && <VerificationCard defaultOpen report={currentQa.verification} loading={verifying.has(currentQa.id)} onRecheck={() => verifyQa(currentQa.id, currentQa.question, currentQa.answer)} />}
           </section>
+
+          {experience.length > 0 && (
+            <section className="rounded-xl border border-border bg-card p-4 shadow-card">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Relevant experience — confirm before saying</h2>
+              <ul className="mt-3 space-y-2">{experience.map((c, i) => <li key={i} className="flex gap-2 text-sm"><span aria-hidden>👤</span>{c.claim}</li>)}</ul>
+            </section>
+          )}
 
           <section className="rounded-xl border border-border bg-card p-4 shadow-card">
             <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Key talking points</h2>
