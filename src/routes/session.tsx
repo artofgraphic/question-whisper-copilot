@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LiveListener, transcribeSegment, type ListenerState } from "@/lib/audio";
 import { looksLikeQuestion, parseAnswer, streamAnswer, type ParsedAnswer } from "@/lib/answer";
-import { lengthLabel, loadSettings, saveSession, saveSettings, uid, type QA, type Session, type Settings, type TranscriptLine } from "@/lib/store";
+import { defaultSettings, lengthLabel, loadSettings, saveSession, saveSettings, uid, type QA, type Session, type Settings, type TranscriptLine } from "@/lib/store";
 import { useAudioStatus } from "@/hooks/use-audio-status";
 import { FloatingOverlay, requestOverlayWindow } from "@/components/FloatingOverlay";
 import { ExportButtons } from "@/components/ExportButtons";
@@ -36,7 +36,7 @@ type Mode = "auto" | "manual" | "regenerate" | "shorter" | "expand";
 const empty: ParsedAnswer = { noQuestion: false, question: "", subject: "", answer: "", points: [] };
 
 function LiveSession() {
-  const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
   const { devices, permission, refresh } = useAudioStatus();
   const [state, setState] = useState<ListenerState>("idle");
   const [level, setLevel] = useState(0);
@@ -69,6 +69,11 @@ function LiveSession() {
   pendingRef.current = pendingFrom;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+  useEffect(() => {
+    const saved = loadSettings();
+    settingsRef.current = saved;
+    setSettings(saved);
+  }, []);
   const answerAbort = useRef<AbortController | null>(null);
   const detectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const transcriptEnd = useRef<HTMLDivElement>(null);
