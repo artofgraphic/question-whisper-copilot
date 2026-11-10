@@ -46,6 +46,14 @@ export function FloatingOverlay({
         document.querySelectorAll('link[rel="stylesheet"], style').forEach((n) => {
           pw.document.head.appendChild(n.cloneNode(true));
         });
+        // Inline loaded rules too: preview stylesheet links may rely on the parent frame's loader.
+        Array.from(document.styleSheets).forEach((sheet) => {
+          try {
+            const style = pw.document.createElement("style");
+            style.textContent = Array.from(sheet.cssRules).map((rule) => rule.cssText).join("\n");
+            pw.document.head.appendChild(style);
+          } catch { /* Cross-origin font stylesheets remain linked above. */ }
+        });
         pw.document.documentElement.dataset["theme"] = document.documentElement.dataset["theme"] ?? "";
         pw.document.title = "A'wn Khafi";
         pw.document.body.className = "bg-background text-foreground";
