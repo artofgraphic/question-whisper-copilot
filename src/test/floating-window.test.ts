@@ -20,4 +20,22 @@ describe("Floating-window compatibility", () => {
     vi.spyOn(window, "open").mockReturnValue(null);
     await expect(requestOverlayWindow(380, 240)).rejects.toThrow("blocked");
   });
+  it("uses the popup inside an embedded preview even when PiP exists", async () => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    const framedWindow = frame.contentWindow;
+    if (!framedWindow) throw new Error("Missing test frame");
+    const requestWindow = vi.fn();
+    Object.defineProperty(framedWindow, "documentPictureInPicture", { value: { requestWindow } });
+    const open = vi.spyOn(framedWindow, "open").mockReturnValue(window);
+    vi.stubGlobal("window", framedWindow);
+    try {
+      expect(await requestOverlayWindow(380, 240)).toBe(frame.ownerDocument.defaultView);
+      expect(requestWindow).not.toHaveBeenCalled();
+      expect(open).toHaveBeenCalledWith("", "awn-floating-overlay", "popup=yes,width=380,height=240");
+    } finally {
+      vi.unstubAllGlobals();
+      frame.remove();
+    }
+  });
 });
