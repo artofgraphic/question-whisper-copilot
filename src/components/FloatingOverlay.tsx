@@ -6,10 +6,6 @@ type PipApi = {
   window: Window | null;
 };
 
-export function pipSupported() {
-  return typeof window !== "undefined" && ("documentPictureInPicture" in window || typeof window.open === "function");
-}
-
 /** Must run directly in the click handler, before React effects lose user activation. */
 export function requestOverlayWindow(width: number, height: number): Promise<Window> {
   const api = (window as unknown as { documentPictureInPicture?: PipApi }).documentPictureInPicture;
