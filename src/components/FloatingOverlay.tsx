@@ -40,6 +40,9 @@ export function FloatingOverlay({
   useEffect(() => {
     if (!open || !targetWindow) return;
     const pw = targetWindow;
+    const base = pw.document.createElement("base");
+    base.href = document.baseURI;
+    pw.document.head.prepend(base);
         document.querySelectorAll('link[rel="stylesheet"], style').forEach((n) => {
           pw.document.head.appendChild(n.cloneNode(true));
         });
