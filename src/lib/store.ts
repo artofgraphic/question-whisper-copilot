@@ -12,6 +12,7 @@ export type Settings = {
   theme: "charcoal" | "midnight";
   silenceMs: number;
   autoVerify: boolean;
+  seenHowItWorks: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -26,6 +27,7 @@ export const defaultSettings: Settings = {
   theme: "charcoal",
   silenceMs: 900,
   autoVerify: true,
+  seenHowItWorks: false,
 };
 
 export const lengthLabel: Record<Settings["length"], string> = {
