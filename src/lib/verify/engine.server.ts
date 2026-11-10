@@ -102,5 +102,6 @@ Output only JSON: {"verdicts":[{"i":0,"status":"...","reasoning":"...","sources"
     if (c && (c.match(/https?:\/\/[^\s)\]]+/g) ?? []).every((u) => allowed.has(u.replace(/[.,;]+$/, "")))) corrected = c;
   }
   const final = results.filter(Boolean);
-  return { checkedAt: Date.now(), overall: overallStatus(final), counts: countStatuses(final), claims: final, correctedAnswer: corrected };
+  const searchDown = toCheck.length > 0 && toCheck.every((x) => x.err);
+  return { error: searchDown ? "Verification could not be completed: live search is unavailable." : null, checkedAt: Date.now(), overall: overallStatus(final), counts: countStatuses(final), claims: final, correctedAnswer: corrected };
 }
