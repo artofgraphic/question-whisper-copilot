@@ -42,7 +42,7 @@ export type QA = {
   answer: string;
   points: string[];
   stage?: number;
-  verification?: VerificationReport;
+  verification?: VerificationReport | undefined;
 };
 
 export type TranscriptLine = { id: string; at: number; text: string };
