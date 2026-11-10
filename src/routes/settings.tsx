@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,14 +35,29 @@ function Card({ title, children, desc }: { title: string; desc?: string; childre
   );
 }
 
-function SettingsPage() {
+export function SettingsPage() {
   const [s, setS] = useState<Settings>(defaultSettings);
+  const [profileDraft, setProfileDraft] = useState("");
   const { permission, devices, request } = useAudioStatus();
-  useEffect(() => setS(loadSettings()), []);
+  useEffect(() => {
+    const saved = loadSettings();
+    setS(saved);
+    setProfileDraft(saved.profile);
+  }, []);
   const set = (p: Partial<Settings>) => {
     const n = { ...s, ...p };
     setS(n);
     saveSettings(n);
+  };
+  const saveBackground = () => {
+    const next = { ...loadSettings(), profile: profileDraft };
+    try {
+      saveSettings(next);
+      setS(next);
+      toast.success("Background saved");
+    } catch {
+      toast.error("Background could not be saved. Please try again.");
+    }
   };
 
   return (
@@ -105,8 +121,12 @@ function SettingsPage() {
           <Switch checked={s.autoVerify} onCheckedChange={(v) => set({ autoVerify: v })} />
         </div>
         <div className="grid gap-2">
-          <Label>Your background (optional)</Label>
-          <Textarea rows={4} value={s.profile} placeholder="Role, skills, real examples. The AI will only use facts written here for personal questions." onChange={(e) => set({ profile: e.target.value })} />
+          <Label htmlFor="background">Your background (optional)</Label>
+          <Textarea id="background" rows={4} value={profileDraft} placeholder="Role, skills, real examples. The AI will only use facts written here for personal questions." onChange={(e) => setProfileDraft(e.target.value)} />
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={saveBackground} disabled={profileDraft === s.profile}><Save className="mr-1 h-3.5 w-3.5" />Save background</Button>
+            <span role="status" className="text-xs text-muted-foreground">{profileDraft !== s.profile ? "Unsaved changes" : s.profile ? "Saved" : ""}</span>
+          </div>
         </div>
       </Card>
 
