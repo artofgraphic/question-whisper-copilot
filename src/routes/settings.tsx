@@ -130,6 +130,22 @@ export function SettingsPage() {
         </div>
       </Card>
 
+      <Card title="Getting started" desc="The step-by-step guide shown on Home the first time you open the app.">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {s.seenHowItWorks ? "Hidden — you closed it on Home." : "Showing on Home."}
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!s.seenHowItWorks}
+            onClick={() => set({ seenHowItWorks: false })}
+          >
+            Show “How it works” on Home
+          </Button>
+        </div>
+      </Card>
+
       <Card title="Theme">
         <Select value={s.theme} onValueChange={(v) => set({ theme: v as Settings["theme"] })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
