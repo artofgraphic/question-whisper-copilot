@@ -1,3 +1,4 @@
+import type { VerificationReport } from "./verify/types";
 // Browser-local persistence for settings and session history (no audio is ever stored).
 export type Settings = {
   deviceId: string;
@@ -10,6 +11,7 @@ export type Settings = {
   saveHistory: boolean;
   theme: "charcoal" | "midnight";
   silenceMs: number;
+  autoVerify: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -23,6 +25,7 @@ export const defaultSettings: Settings = {
   saveHistory: true,
   theme: "charcoal",
   silenceMs: 900,
+  autoVerify: true,
 };
 
 export const lengthLabel: Record<Settings["length"], string> = {
@@ -39,6 +42,7 @@ export type QA = {
   answer: string;
   points: string[];
   stage?: number;
+  verification?: VerificationReport;
 };
 
 export type TranscriptLine = { id: string; at: number; text: string };

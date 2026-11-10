@@ -15,6 +15,7 @@ import { Route as SessionRouteImport } from './routes/session'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiAnswerRouteImport } from './routes/api/answer'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiVerifyRouteImport } from './routes/api/verify'
 import { Route as HistoryIdRouteImport } from './routes/history.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVerifyRoute = ApiVerifyRouteImport.update({
+  id: '/api/verify',
+  path: '/api/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryIdRoute = HistoryIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/verify': typeof ApiVerifyRoute
   '/history/$id': typeof HistoryIdRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/answer'
     | '/api/transcribe'
+    | '/api/verify'
     | '/history/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/answer'
     | '/api/transcribe'
+    | '/api/verify'
     | '/history/$id'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/answer'
     | '/api/transcribe'
+    | '/api/verify'
     | '/history/$id'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ApiAnswerRoute: typeof ApiAnswerRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiVerifyRoute: typeof ApiVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/verify': {
+      id: '/api/verify'
+      path: '/api/verify'
+      fullPath: '/api/verify'
+      preLoaderRoute: typeof ApiVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history/$id': {
       id: '/history/$id'
       path: '/$id'
@@ -192,6 +212,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ApiAnswerRoute: ApiAnswerRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiVerifyRoute: ApiVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

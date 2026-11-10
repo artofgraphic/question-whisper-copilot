@@ -23,18 +23,10 @@ export type VerificationReport = {
   error?: string | null;
 };
 
-const ORDER: ClaimStatus[] = ["contradicted", "stale", "unverified", "personal", "supported"];
-/** Worst factual status wins; personal-only answers are "personal"; no claims => supported. */
+/** Worst factual status wins; answers with only personal claims are "personal"; no claims => supported. */
 export function overallStatus(claims: { status: ClaimStatus }[]): ClaimStatus {
-  if (!claims.length) return "supported";
-  for (const s of ORDER) if (claims.some((c) => c.status === s)) {
-    if (s === "personal" || s === "unverified") {
-      const factual = claims.filter((c) => c.status !== "personal");
-      if (s === "personal") return factual.length ? "supported" : "personal";
-    }
-    return s;
-  }
-  return "supported";
+  for (const s of ["contradicted", "stale", "unverified", "supported"] as const) if (claims.some((c) => c.status === s)) return s;
+  return claims.length ? "personal" : "supported";
 }
 export function countStatuses(claims: { status: ClaimStatus }[]) {
   const c: Record<ClaimStatus, number> = { supported: 0, stale: 0, contradicted: 0, unverified: 0, personal: 0 };
